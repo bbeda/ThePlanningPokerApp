@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json.schemastore.org/aspire-8.0.json",
+  "resources": {
+    "planningpoker-env-acr": {
+      "type": "azure.bicep.v0",
+      "path": "planningpoker-env-acr.module.bicep"
+    },
+    "planningpoker-env": {
+      "type": "azure.bicep.v0",
+      "path": "planningpoker-env.module.bicep",
+      "params": {
+        "planningpoker_env_acr_outputs_name": "{planningpoker-env-acr.outputs.name}",
+        "userPrincipalId": ""
+      }
+    },
+    "planningpoker-api": {
+      "type": "project.v1",
+      "path": "PlanningPoker.Api/PlanningPoker.Api.csproj",
+      "deployment": {
+        "type": "azure.bicep.v0",
+        "path": "planningpoker-api-containerapp.module.bicep",
+        "params": {
+          "planningpoker_env_outputs_azure_container_apps_environment_default_domain": "{planningpoker-env.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN}",
+          "planningpoker_env_outputs_azure_container_apps_environment_id": "{planningpoker-env.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}",
+          "planningpoker_env_outputs_azure_container_registry_endpoint": "{planningpoker-env.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT}",
+          "planningpoker_env_outputs_azure_container_registry_managed_identity_id": "{planningpoker-env.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
+          "planningpoker_api_containerimage": "{planningpoker-api.containerImage}",
+          "planningpoker_api_containerport": "{planningpoker-api.containerPort}"
+        }
+      },
+      "env": {
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
+        "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
+        "HTTP_PORTS": "{planningpoker-api.bindings.http.targetPort}"
+      },
+      "bindings": {
+        "http": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http",
+          "external": true
+        },
+        "https": {
+          "scheme": "https",
+          "protocol": "tcp",
+          "transport": "http",
+          "external": true
+        }
+      }
+    }
+  }
+}

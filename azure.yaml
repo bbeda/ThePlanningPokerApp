@@ -1,0 +1,18 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Azure/azure-dev/main/schemas/v1.0/azure.yaml.json
+
+name: planning-poker
+
+hooks:
+  predeploy:
+    windows:
+      shell: pwsh
+      run: .\build-frontend.ps1
+    posix:
+      shell: sh
+      run: ./build-frontend.sh
+
+services:
+  planningpoker-api:
+    project: ./src/PlanningPoker.Api
+    host: containerapp
+    language: dotnet

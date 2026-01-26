@@ -1,0 +1,7 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/PlanningPoker.Api/PlanningPoker.Api.csproj" />
+    <Project Path="src/PlanningPoker.AppHost/PlanningPoker.AppHost.csproj" />
+    <Project Path="src/PlanningPoker.ServiceDefaults/PlanningPoker.ServiceDefaults.csproj" />
+  </Folder>
+</Solution>
