@@ -127,6 +127,7 @@ export function useSse() {
 
   function handleSessionClosed() {
     disconnect();
+    sessionStore.reset();
     alert("The session has been closed by the owner");
     router.push("/");
   }

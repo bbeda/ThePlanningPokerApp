@@ -6,9 +6,10 @@ export interface Vote {
 }
 
 export interface VotingResults {
-  lowFibonacciAverage: number
-  highFibonacciAverage: number
   actualAverage: number
+  majority: number
+  optimistic: number
+  pessimistic: number
   distribution: Record<number, number>
   minVote: number
   maxVote: number

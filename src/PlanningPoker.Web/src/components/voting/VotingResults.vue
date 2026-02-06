@@ -4,23 +4,29 @@
     <div class="bg-white rounded-lg shadow-lg p-6">
       <h2 class="text-2xl font-bold text-gray-800 mb-6">Voting Results</h2>
 
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div class="bg-blue-50 rounded-lg p-4 text-center">
-          <div class="text-sm text-gray-600 mb-1">Low Estimate</div>
-          <div class="text-3xl font-bold text-primary">{{ results.lowFibonacciAverage }}</div>
-          <div class="text-xs text-gray-500 mt-1">Closest Fibonacci ≤ average</div>
-        </div>
-
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <div class="bg-green-50 rounded-lg p-4 text-center">
           <div class="text-sm text-gray-600 mb-1">Average</div>
           <div class="text-3xl font-bold text-secondary">{{ results.actualAverage.toFixed(1) }}</div>
-          <div class="text-xs text-gray-500 mt-1">Arithmetic mean</div>
+          <div class="text-xs text-gray-500 mt-1">Mean of all votes</div>
+        </div>
+
+        <div class="bg-blue-50 rounded-lg p-4 text-center">
+          <div class="text-sm text-gray-600 mb-1">Majority</div>
+          <div class="text-3xl font-bold text-primary">{{ results.majority }}</div>
+          <div class="text-xs text-gray-500 mt-1">Most common vote</div>
+        </div>
+
+        <div class="bg-emerald-50 rounded-lg p-4 text-center">
+          <div class="text-sm text-gray-600 mb-1">Optimistic</div>
+          <div class="text-3xl font-bold text-emerald-600">{{ results.optimistic }}</div>
+          <div class="text-xs text-gray-500 mt-1">25th percentile</div>
         </div>
 
         <div class="bg-purple-50 rounded-lg p-4 text-center">
-          <div class="text-sm text-gray-600 mb-1">High Estimate</div>
-          <div class="text-3xl font-bold text-purple-600">{{ results.highFibonacciAverage }}</div>
-          <div class="text-xs text-gray-500 mt-1">Closest Fibonacci ≥ average</div>
+          <div class="text-sm text-gray-600 mb-1">Pessimistic</div>
+          <div class="text-3xl font-bold text-purple-600">{{ results.pessimistic }}</div>
+          <div class="text-xs text-gray-500 mt-1">75th percentile</div>
         </div>
       </div>
 

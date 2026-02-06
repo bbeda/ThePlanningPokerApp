@@ -1,9 +1,13 @@
 <template>
-  <div class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+  <div
+    class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4"
+  >
     <div class="max-w-md w-full">
       <div class="text-center mb-8">
         <h1 class="text-5xl font-bold text-gray-800 mb-2">Planning Poker</h1>
-        <p class="text-gray-600">Collaborative story point estimation for your team</p>
+        <p class="text-gray-600">
+          Collaborative story point estimation for your team
+        </p>
       </div>
 
       <div class="bg-white rounded-lg shadow-xl p-8 space-y-4">
@@ -30,13 +34,8 @@
           Join Existing Session
         </router-link>
       </div>
-
-      <div class="mt-8 text-center text-sm text-gray-600">
-        <p>Fibonacci sequence: 1, 2, 3, 5, 8, 13, 21</p>
-      </div>
     </div>
   </div>
 </template>
 
-<script setup lang="ts">
-</script>
+<script setup lang="ts"></script>

@@ -153,15 +153,16 @@ export const useSessionStore = defineStore("session", () => {
     const userJson = localStorage.getItem(STORAGE_KEYS.CURRENT_USER);
     const code = localStorage.getItem(STORAGE_KEYS.SESSION_CODE);
 
+    let user: User | null = null;
     if (userJson) {
       try {
-        currentUser.value = JSON.parse(userJson);
+        user = JSON.parse(userJson);
       } catch {
-        currentUser.value = null;
+        user = null;
       }
     }
 
-    return { user: currentUser.value, sessionCode: code };
+    return { user, sessionCode: code };
   }
 
   function clearStorage() {

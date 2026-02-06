@@ -87,31 +87,42 @@ const currentRound = computed(() => sessionStore.currentRound);
 
 onMounted(async () => {
   try {
-    // If we don't have session data, fetch it
+    // Always fetch fresh session data to ensure participant list is up-to-date
+    const sessionData = await api.getSession(props.code);
+    sessionStore.setSession(sessionData);
+
+    // Validate: is the in-memory user actually a participant in THIS session?
     if (
-      !sessionStore.session ||
-      sessionStore.session.sessionCode !== props.code
+      sessionStore.currentUser &&
+      !sessionData.users.some((u) => u.id === sessionStore.currentUser!.id)
     ) {
-      const sessionData = await api.getSession(props.code);
-      sessionStore.setSession(sessionData);
+      // Stale user from a different session — clear it
+      sessionStore.currentUser = null;
     }
 
-    // If we don't have current user, try to restore from localStorage
+    // If we don't have a valid user, try to restore from localStorage
     if (!sessionStore.currentUser) {
       const { user, sessionCode } = sessionStore.restoreFromStorage();
 
       if (user && sessionCode === props.code) {
-        // Try to reconnect
+        // Try to reconnect (backend matches by browserId)
         try {
-          const reconnectedUser = await api.joinSession(props.code, user.name);
+          const reconnectedUser = await api.joinSession(
+            props.code,
+            user.name,
+          );
           sessionStore.setCurrentUser(reconnectedUser);
+          // Re-fetch session so participant list includes the reconnected user
+          const refreshedSession = await api.getSession(props.code);
+          sessionStore.setSession(refreshedSession);
         } catch {
           // Reconnection failed, redirect to join
+          sessionStore.reset();
           router.push(`/join/${props.code}`);
           return;
         }
       } else {
-        // No stored data, redirect to join
+        // No stored data for this session, redirect to join
         router.push(`/join/${props.code}`);
         return;
       }

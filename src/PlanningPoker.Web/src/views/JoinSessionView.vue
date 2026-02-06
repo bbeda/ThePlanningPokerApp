@@ -111,7 +111,10 @@ async function handleJoin() {
     const user = await api.joinSession(code, userName.value.trim());
     sessionStore.setCurrentUser(user);
 
-    // Navigate to session - SessionView will fetch the complete session data
+    // Fetch the full session data so the participant list includes us
+    const session = await api.getSession(code);
+    sessionStore.setSession(session);
+
     router.push(`/session/${code}`);
   } catch (err) {
     error.value = err instanceof Error ? err.message : "Failed to join session";

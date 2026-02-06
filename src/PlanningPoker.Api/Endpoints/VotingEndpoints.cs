@@ -62,9 +62,10 @@ public static class VotingEndpoints
             {
                 var results = await service.RevealVotesAsync(sessionCode, userId);
                 var response = new VotingResultsResponse(
-                    results.LowFibonacciAverage,
-                    results.HighFibonacciAverage,
                     results.ActualAverage,
+                    results.Majority,
+                    results.Optimistic,
+                    results.Pessimistic,
                     results.Distribution,
                     results.MinVote,
                     results.MaxVote,

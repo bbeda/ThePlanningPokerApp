@@ -56,5 +56,8 @@ dist/
 Thumbs.db
 nul
 
+# Frontend build output
+src/PlanningPoker.Api/wwwroot/
+
 # Claude Code
 .claude/

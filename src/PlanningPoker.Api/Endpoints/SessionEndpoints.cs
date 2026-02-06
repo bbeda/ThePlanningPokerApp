@@ -50,9 +50,10 @@ public static class SessionEndpoints
                         v.SubmittedAt
                     )).ToList(),
                     session.CurrentRound.Results != null ? new VotingResultsResponse(
-                        session.CurrentRound.Results.LowFibonacciAverage,
-                        session.CurrentRound.Results.HighFibonacciAverage,
                         session.CurrentRound.Results.ActualAverage,
+                        session.CurrentRound.Results.Majority,
+                        session.CurrentRound.Results.Optimistic,
+                        session.CurrentRound.Results.Pessimistic,
                         session.CurrentRound.Results.Distribution,
                         session.CurrentRound.Results.MinVote,
                         session.CurrentRound.Results.MaxVote,
