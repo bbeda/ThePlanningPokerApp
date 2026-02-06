@@ -25,7 +25,7 @@ public static class SessionEndpoints
             return Results.Created($"/api/sessions/{session.Id}", response);
         });
 
-        group.MapGet("/{code}", async (string code, ISessionService service) =>
+        group.MapGet("/{code}", async (string code, string? userId, ISessionService service) =>
         {
             var session = await service.GetSessionAsync(code);
 
@@ -46,7 +46,7 @@ public static class SessionEndpoints
                     session.CurrentRound.Votes.Values.Select(v => new VoteResponse(
                         v.UserId,
                         v.UserName,
-                        isRevealed ? v.Value : null,
+                        isRevealed || v.UserId == userId ? v.Value : null,
                         v.SubmittedAt
                     )).ToList(),
                     session.CurrentRound.Results != null ? new VotingResultsResponse(

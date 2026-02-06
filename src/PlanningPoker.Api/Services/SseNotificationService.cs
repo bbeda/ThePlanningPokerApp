@@ -7,7 +7,10 @@ namespace PlanningPoker.Api.Services;
 
 public class SseNotificationService : ISseNotificationService
 {
-    private readonly ConcurrentDictionary<string, ConcurrentDictionary<string, StreamWriter>> _connections = new();
+    private record SseClient(string UserId, StreamWriter Writer);
+
+    // sessionCode → connectionId → SseClient
+    private readonly ConcurrentDictionary<string, ConcurrentDictionary<string, SseClient>> _connections = new();
     private readonly ILogger<SseNotificationService> _logger;
     private readonly IServiceProvider _serviceProvider;
 
@@ -19,6 +22,8 @@ public class SseNotificationService : ISseNotificationService
 
     public async Task RegisterClientAsync(string sessionCode, string userId, HttpResponse response, CancellationToken cancellationToken)
     {
+        var connectionId = Guid.NewGuid().ToString();
+
         try
         {
             // Set SSE headers
@@ -32,19 +37,11 @@ public class SseNotificationService : ISseNotificationService
             var streamWriter = new StreamWriter(response.Body, Encoding.UTF8, leaveOpen: true);
 
             // Add connection to the dictionary
-            var sessionConnections = _connections.GetOrAdd(sessionCode, _ => new ConcurrentDictionary<string, StreamWriter>());
-            sessionConnections.AddOrUpdate(userId, streamWriter, (key, oldValue) =>
-            {
-                // Close old connection if exists
-                try
-                {
-                    oldValue?.Dispose();
-                }
-                catch { }
-                return streamWriter;
-            });
+            var sessionConnections = _connections.GetOrAdd(sessionCode, _ => new ConcurrentDictionary<string, SseClient>());
+            sessionConnections.TryAdd(connectionId, new SseClient(userId, streamWriter));
 
-            _logger.LogInformation("SSE client registered: Session={SessionCode}, User={UserId}", sessionCode, userId);
+            _logger.LogInformation("SSE client registered: Session={SessionCode}, User={UserId}, Connection={ConnectionId}",
+                sessionCode, userId, connectionId);
 
             // Update user connection status
             await UpdateUserConnectionStatusAsync(sessionCode, userId, true);
@@ -70,30 +67,36 @@ public class SseNotificationService : ISseNotificationService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error in SSE connection: Session={SessionCode}, User={UserId}", sessionCode, userId);
+            _logger.LogError(ex, "Error in SSE connection: Session={SessionCode}, User={UserId}, Connection={ConnectionId}",
+                sessionCode, userId, connectionId);
         }
         finally
         {
-            await UnregisterClientAsync(sessionCode, userId);
+            await UnregisterConnectionAsync(sessionCode, connectionId);
         }
     }
 
-    public async Task UnregisterClientAsync(string sessionCode, string userId)
+    private async Task UnregisterConnectionAsync(string sessionCode, string connectionId)
     {
         if (_connections.TryGetValue(sessionCode, out var sessionConnections))
         {
-            if (sessionConnections.TryRemove(userId, out var streamWriter))
+            if (sessionConnections.TryRemove(connectionId, out var client))
             {
                 try
                 {
-                    streamWriter.Dispose();
+                    client.Writer.Dispose();
                 }
                 catch { }
 
-                _logger.LogInformation("SSE client unregistered: Session={SessionCode}, User={UserId}", sessionCode, userId);
+                _logger.LogInformation("SSE client unregistered: Session={SessionCode}, User={UserId}, Connection={ConnectionId}",
+                    sessionCode, client.UserId, connectionId);
 
-                // Update user connection status
-                await UpdateUserConnectionStatusAsync(sessionCode, userId, false);
+                // Only mark user as disconnected if they have no remaining connections
+                bool hasOtherConnections = sessionConnections.Values.Any(c => c.UserId == client.UserId);
+                if (!hasOtherConnections)
+                {
+                    await UpdateUserConnectionStatusAsync(sessionCode, client.UserId, false);
+                }
             }
 
             // Remove session if no more connections
@@ -104,11 +107,23 @@ public class SseNotificationService : ISseNotificationService
         }
     }
 
+    public async Task UnregisterClientAsync(string sessionCode, string userId)
+    {
+        if (_connections.TryGetValue(sessionCode, out var sessionConnections))
+        {
+            var userConnections = sessionConnections.Where(kvp => kvp.Value.UserId == userId).ToList();
+            foreach (var kvp in userConnections)
+            {
+                await UnregisterConnectionAsync(sessionCode, kvp.Key);
+            }
+        }
+    }
+
     public bool IsUserConnected(string sessionCode, string userId)
     {
         if (_connections.TryGetValue(sessionCode, out var sessionConnections))
         {
-            return sessionConnections.ContainsKey(userId);
+            return sessionConnections.Values.Any(c => c.UserId == userId);
         }
         return false;
     }
@@ -152,12 +167,12 @@ public class SseNotificationService : ISseNotificationService
 
         foreach (var kvp in sessionConnections)
         {
-            if (excludeUserId != null && kvp.Key == excludeUserId)
+            if (excludeUserId != null && kvp.Value.UserId == excludeUserId)
             {
                 continue; // Skip excluded user
             }
 
-            tasks.Add(SendMessageAsync(sessionCode, kvp.Key, kvp.Value, sseMessage));
+            tasks.Add(SendMessageAsync(sessionCode, kvp.Key, kvp.Value.Writer, sseMessage));
         }
 
         await Task.WhenAll(tasks);
@@ -165,12 +180,18 @@ public class SseNotificationService : ISseNotificationService
 
     public async Task NotifyUserAsync(string sessionCode, string userId, SseEvent sseEvent)
     {
-        if (_connections.TryGetValue(sessionCode, out var sessionConnections) &&
-            sessionConnections.TryGetValue(userId, out var streamWriter))
+        if (!_connections.TryGetValue(sessionCode, out var sessionConnections))
         {
-            var sseMessage = FormatSseMessage(sseEvent);
-            await SendMessageAsync(sessionCode, userId, streamWriter, sseMessage);
+            return;
         }
+
+        var sseMessage = FormatSseMessage(sseEvent);
+        var tasks = sessionConnections
+            .Where(kvp => kvp.Value.UserId == userId)
+            .Select(kvp => SendMessageAsync(sessionCode, kvp.Key, kvp.Value.Writer, sseMessage))
+            .ToList();
+
+        await Task.WhenAll(tasks);
     }
 
     private string FormatSseMessage(SseEvent sseEvent)
@@ -205,19 +226,19 @@ public class SseNotificationService : ISseNotificationService
         return sb.ToString();
     }
 
-    private async Task SendMessageAsync(string sessionCode, string userId, StreamWriter streamWriter, string message)
+    private async Task SendMessageAsync(string sessionCode, string connectionId, StreamWriter streamWriter, string message)
     {
         try
         {
             await streamWriter.WriteAsync(message);
             await streamWriter.FlushAsync();
-            _logger.LogDebug("SSE message sent: Session={SessionCode}, User={UserId}", sessionCode, userId);
+            _logger.LogDebug("SSE message sent: Session={SessionCode}, Connection={ConnectionId}", sessionCode, connectionId);
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to send SSE message: Session={SessionCode}, User={UserId}", sessionCode, userId);
+            _logger.LogWarning(ex, "Failed to send SSE message: Session={SessionCode}, Connection={ConnectionId}", sessionCode, connectionId);
             // Remove the disconnected client
-            await UnregisterClientAsync(sessionCode, userId);
+            await UnregisterConnectionAsync(sessionCode, connectionId);
         }
     }
 }
