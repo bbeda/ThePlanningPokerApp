@@ -71,6 +71,7 @@ resource planningpoker_api 'Microsoft.App/containerApps@2025-02-02-preview' = {
       ]
       scale: {
         minReplicas: 1
+        maxReplicas: 1
       }
     }
   }
