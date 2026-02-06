@@ -8,6 +8,9 @@ const STORAGE_KEYS = {
 };
 
 export const useSessionStore = defineStore("session", () => {
+  // Cross-tab sync for own votes
+  const crossTabChannel = new BroadcastChannel("planning-poker-sync");
+
   // State
   const session = ref<Session | null>(null);
   const currentUser = ref<User | null>(null);
@@ -100,7 +103,7 @@ export const useSessionStore = defineStore("session", () => {
     }
   }
 
-  function updateVote(vote: Vote) {
+  function updateVote(vote: Vote, broadcast = true) {
     if (currentRound.value) {
       const index = currentRound.value.votes.findIndex(
         (v) => v.userId === vote.userId,
@@ -131,8 +134,20 @@ export const useSessionStore = defineStore("session", () => {
               : null,
         });
       }
+
+      // Broadcast own vote to other tabs
+      if (broadcast && isOwnVote && vote.value !== null) {
+        crossTabChannel.postMessage({ type: "vote-updated", vote });
+      }
     }
   }
+
+  // Listen for vote updates from other tabs
+  crossTabChannel.onmessage = (event: MessageEvent) => {
+    if (event.data.type === "vote-updated" && currentRound.value) {
+      updateVote(event.data.vote, false);
+    }
+  };
 
   function revealVotes(data: { results: VotingResults; votes: Vote[] }) {
     if (currentRound.value) {
