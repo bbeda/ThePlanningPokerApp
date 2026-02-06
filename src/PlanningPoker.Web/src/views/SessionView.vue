@@ -88,7 +88,10 @@ const currentRound = computed(() => sessionStore.currentRound);
 onMounted(async () => {
   try {
     // Always fetch fresh session data to ensure participant list is up-to-date
-    const sessionData = await api.getSession(props.code);
+    const sessionData = await api.getSession(
+      props.code,
+      sessionStore.currentUser?.id,
+    );
     sessionStore.setSession(sessionData);
 
     // Validate: is the in-memory user actually a participant in THIS session?
@@ -113,7 +116,10 @@ onMounted(async () => {
           );
           sessionStore.setCurrentUser(reconnectedUser);
           // Re-fetch session so participant list includes the reconnected user
-          const refreshedSession = await api.getSession(props.code);
+          const refreshedSession = await api.getSession(
+            props.code,
+            reconnectedUser.id,
+          );
           sessionStore.setSession(refreshedSession);
         } catch {
           // Reconnection failed, redirect to join

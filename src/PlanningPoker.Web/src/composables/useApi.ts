@@ -55,8 +55,9 @@ export function useApi() {
     });
   }
 
-  async function getSession(sessionCode: string) {
-    return request<Session>(`/sessions/${sessionCode}`);
+  async function getSession(sessionCode: string, userId?: string) {
+    const query = userId ? `?userId=${userId}` : "";
+    return request<Session>(`/sessions/${sessionCode}${query}`);
   }
 
   async function joinSession(sessionCode: string, userName: string) {
